@@ -1,0 +1,8 @@
+venv/
+
+# Logs and data files
+*.log
+humidity_log.csv
+log_archive/
+__pycache__/
+.env
