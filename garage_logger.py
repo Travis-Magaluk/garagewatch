@@ -34,7 +34,7 @@ with open(CSV_FILE, "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["timestamp", "temperature_C", "humidity_percent"])
 
-print("🌡️ Logging SHT-30 sensor data. Press Ctrl+C to stop.\n")
+print("Logging SHT-30 sensor data. Press Ctrl+C to stop.\n")
 
 # === Logging Loop ===
 try:
@@ -55,4 +55,4 @@ try:
         time.sleep(60)
 
 except KeyboardInterrupt:
-    print("\n🛑 Logging stopped. Final log written.")
+    print("\nLogging stopped. Final log written.")
