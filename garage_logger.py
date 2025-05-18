@@ -15,7 +15,7 @@ DB_CONFIG = {
     "host": "localhost",
     "dbname": "garage_data",
     "user": "garage_user",
-    "password": "Bl1ssF@ncy"
+    "password": "Bl1ssF@ncy!"
 }
 
 # === Setup I2C Sensor ===
