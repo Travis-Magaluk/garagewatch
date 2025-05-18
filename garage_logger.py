@@ -4,55 +4,77 @@ import time
 import board
 import busio
 import adafruit_sht31d
-import csv
+import psycopg2
 from datetime import datetime
 import os
-import shutil
 
 # === CONFIG ===
-BASE_DIR = "/home/travismagaluk/garagewatch"
-CSV_FILE = os.path.join(BASE_DIR, "humidity_log.csv")
-LOG_FILE = os.path.join(BASE_DIR, "logger.log")
-BACKUP_DIR = os.path.join(BASE_DIR, "log_archive")
+LOG_FILE = "/home/travismagaluk/garagewatch/logger.log"
 
-# === Setup Directories ===
-os.makedirs(BASE_DIR, exist_ok=True)
-os.makedirs(BACKUP_DIR, exist_ok=True)
-
-# === Archive Existing CSV Log ===
-if os.path.exists(CSV_FILE):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = f"humidity_log_{timestamp}.csv"
-    shutil.move(CSV_FILE, os.path.join(BACKUP_DIR, backup_name))
+DB_CONFIG = {
+    "host": "localhost",
+    "dbname": "garage_data",
+    "user": "garage_user",
+    "password": "Bl1ssF@ncy"
+}
 
 # === Setup I2C Sensor ===
 i2c = busio.I2C(board.SCL, board.SDA)
 sensor = adafruit_sht31d.SHT31D(i2c)
 
-# === Create New CSV with Headers ===
-with open(CSV_FILE, "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(["timestamp", "temperature_C", "humidity_percent"])
+def write_log(message):
+    now = datetime.now().isoformat()
+    with open(LOG_FILE, "a") as f:
+        f.write(f"{now} - {message}\n")
 
-print("Logging SHT-30 sensor data. Press Ctrl+C to stop.\n")
+def connect_db():
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.autocommit = True
+        return conn
+    except Exception as e:
+        write_log(f"❌ Failed to connect to DB: {e}")
+        return None
 
-# === Logging Loop ===
+print("Logging sensor data to PostgreSQL. Press Ctrl+C to stop.\n")
+write_log("🚀 Logger started.")
+
+conn = connect_db()
+cur = conn.cursor() if conn else None
+
 try:
     while True:
         try:
-            temperature = sensor.temperature
-            humidity = sensor.relative_humidity
-            timestamp = datetime.now().isoformat()
+            # Reconnect if needed
+            if conn is None or conn.closed:
+                conn = connect_db()
+                cur = conn.cursor() if conn else None
 
-            print(f"{timestamp} - Temp: {temperature:.2f}°C, Humidity: {humidity:.2f}%")
+            if cur:
+                temperature_c = sensor.temperature
+                temperature_f = (temperature_c * 9/5) + 32
+                humidity = sensor.relative_humidity
+                timestamp = datetime.now()
 
-            with open(CSV_FILE, "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow([timestamp, f"{temperature:.2f}", f"{humidity:.2f}"])
+                print(f"{timestamp.isoformat()} - {temperature_f:.2f}°F, {humidity:.2f}%")
+
+                cur.execute(
+                    """
+                    INSERT INTO readings (timestamp, temperature_c, temperature_f, humidity_percent)
+                    VALUES (%s, %s, %s, %s);
+                    """,
+                    (timestamp, temperature_c, temperature_f, humidity)
+                )
+            else:
+                write_log("⚠️ No DB cursor — skipping insert")
+
         except Exception as e:
-            print(f"[WARN] Sensor read failed at {datetime.now().isoformat()}: {e}")
+            write_log(f"[WARN] Sensor or DB insert failed: {e}")
 
         time.sleep(60)
 
 except KeyboardInterrupt:
-    print("\nLogging stopped. Final log written.")
+    print("\nLogging stopped. Final entry written.")
+    write_log("🛑 Logger stopped by user.")
+    if cur: cur.close()
+    if conn: conn.close()
