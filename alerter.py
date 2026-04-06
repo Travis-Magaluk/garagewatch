@@ -5,8 +5,8 @@ import smtplib
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 
-HUMIDITY_THRESHOLD = 30.0      # percent
-ROLLING_WINDOW_HOURS = 0.05
+HUMIDITY_THRESHOLD = 50.0     # percent
+ROLLING_WINDOW_HOURS = 6
 COOLDOWN_HOURS = 12
 
 _last_alert_sent = None

@@ -85,7 +85,7 @@ try:
         except Exception as e:
             write_log(f"[WARN] Sensor or DB insert failed: {e}")
 
-        time.sleep(6)
+        time.sleep(1800)  # 30 minutes
 
 except KeyboardInterrupt:
     print("\nLogging stopped. Final entry written.")
