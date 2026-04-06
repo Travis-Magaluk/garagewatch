@@ -22,10 +22,6 @@ DB_CONFIG = {
     "password": "Bl1ssF@ncy!"
 }
 
-# === Setup I2C Sensor ===
-i2c = busio.I2C(board.SCL, board.SDA)
-sensor = adafruit_sht31d.SHT31D(i2c)
-
 def write_log(message):
     now = datetime.now().isoformat()
     with open(LOG_FILE, "a") as f:
@@ -40,8 +36,21 @@ def connect_db():
         write_log(f"❌ Failed to connect to DB: {e}")
         return None
 
+def init_sensor():
+    while True:
+        try:
+            i2c = busio.I2C(board.SCL, board.SDA)
+            sensor = adafruit_sht31d.SHT31D(i2c)
+            write_log("✅ Sensor initialized.")
+            return sensor
+        except Exception as e:
+            write_log(f"⚠️ Sensor init failed, retrying in 5s: {e}")
+            time.sleep(5)
+
 print("Logging sensor data to PostgreSQL. Press Ctrl+C to stop.\n")
 write_log("🚀 Logger started.")
+
+sensor = init_sensor()
 
 conn = connect_db()
 cur = conn.cursor() if conn else None
