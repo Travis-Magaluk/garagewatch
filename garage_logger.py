@@ -7,6 +7,10 @@ import adafruit_sht31d
 import psycopg2
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+import alerter
+
+load_dotenv()
 
 # === CONFIG ===
 LOG_FILE = "/home/travismagaluk/garagewatch/logger.log"
@@ -65,6 +69,7 @@ try:
                     """,
                     (timestamp, temperature_c, temperature_f, humidity)
                 )
+                alerter.check_and_alert(conn, write_log)
             else:
                 write_log("⚠️ No DB cursor — skipping insert")
 

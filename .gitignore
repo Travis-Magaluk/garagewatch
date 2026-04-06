@@ -6,3 +6,8 @@ humidity_log.csv
 log_archive/
 __pycache__/
 .env
+
+startup_instructions.md
+suggestions.txt
+CLAUDE.md
+
