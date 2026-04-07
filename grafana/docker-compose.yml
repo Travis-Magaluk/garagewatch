@@ -7,6 +7,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GARAGE_DB_PASSWORD=${GARAGE_DB_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./provisioning:/etc/grafana/provisioning
