@@ -1,0 +1,356 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
+    { "type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 50 },
+              { "color": "orange", "value": 85 },
+              { "color": "red", "value": 95 }
+            ]
+          },
+          "unit": "fahrenheit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Current Temperature",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT read_at_utc AS time, temperature_f AS value FROM analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "orange", "value": 65 },
+              { "color": "red", "value": 75 }
+            ]
+          },
+          "unit": "percent",
+          "max": 100,
+          "min": 0
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Current Humidity",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT read_at_utc AS time, humidity_percent AS value FROM analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 120 }
+            ]
+          },
+          "unit": "m"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Data Freshness",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT now() AS time, EXTRACT(EPOCH FROM (now() - max(read_at_utc))) / 60 AS value FROM analytics.stg_readings",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Total Readings",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT now() AS time, count(*) AS \"Total Readings\" FROM analytics.stg_readings",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Temperature (°F)" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Humidity (%)" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 4 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["min", "max", "mean"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Temperature & Humidity Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "7-day avg temp (°F)" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "30-day avg temp (°F)" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }] },
+          { "matcher": { "id": "byName", "options": "7-day avg humidity (%)" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "color", "value": { "fixedColor": "lightblue", "mode": "fixed" } }, { "id": "custom.axisPlacement", "value": "right" }] },
+          { "matcher": { "id": "byName", "options": "30-day avg humidity (%)" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.axisPlacement", "value": "right" }, { "id": "custom.lineWidth", "value": 3 }] }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "id": 6,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Rolling Averages (7-day & 30-day)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "temp_f_min" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Min Temp" }] },
+          { "matcher": { "id": "byName", "options": "temp_f_max" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Max Temp" }] },
+          { "matcher": { "id": "byName", "options": "temp_f_avg" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Avg Temp" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "id": 7,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Daily Temperature Range (Min / Avg / Max)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "humidity_min" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Min Humidity" }] },
+          { "matcher": { "id": "byName", "options": "humidity_max" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Max Humidity" }] },
+          { "matcher": { "id": "byName", "options": "humidity_avg" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Avg Humidity" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "id": 8,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Daily Humidity Range (Min / Avg / Max)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": { "defaults": { "unit": "fahrenheit" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "id": 9,
+      "options": { "calculate": false, "cellGap": 1, "color": { "exponent": 0.5, "fill": "dark-orange", "mode": "scheme", "scheme": "Oranges", "steps": 128 }, "exemplars": { "color": "rgba(255,0,255,0.7)" }, "filterValues": { "le": 1e-9 }, "legend": { "show": true }, "rowsFrame": { "layout": "auto" }, "tooltip": { "show": true, "yHistogram": false }, "yAxis": { "axisPlacement": "left", "unit": "short" } },
+      "title": "Avg Temperature by Hour × Month",
+      "type": "heatmap",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT make_timestamp(2024, month_num, 1, hour_of_day, 0, 0) AS time, temp_f_avg AS value FROM analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "id": 10,
+      "options": { "calculate": false, "cellGap": 1, "color": { "exponent": 0.5, "fill": "dark-blue", "mode": "scheme", "scheme": "Blues", "steps": 128 }, "exemplars": { "color": "rgba(255,0,255,0.7)" }, "filterValues": { "le": 1e-9 }, "legend": { "show": true }, "rowsFrame": { "layout": "auto" }, "tooltip": { "show": true, "yHistogram": false }, "yAxis": { "axisPlacement": "left", "unit": "short" } },
+      "title": "Avg Humidity by Hour × Month",
+      "type": "heatmap",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT make_timestamp(2024, month_num, 1, hour_of_day, 0, 0) AS time, humidity_avg AS value FROM analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "day" }, "properties": [{ "id": "displayName", "value": "Date" }] },
+          { "matcher": { "id": "byName", "options": "temp_f_avg" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Avg Temp (°F)" }] },
+          { "matcher": { "id": "byName", "options": "temp_f_extreme" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Min Temp (°F)" }] },
+          { "matcher": { "id": "byName", "options": "humidity_avg" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Avg Humidity" }] },
+          { "matcher": { "id": "byName", "options": "rank" }, "properties": [{ "id": "displayName", "value": "Rank" }] }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 38 },
+      "id": 11,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": false, "displayName": "Rank" }] },
+      "title": "Coldest 15 Days (Last Year)",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "day" }, "properties": [{ "id": "displayName", "value": "Date" }] },
+          { "matcher": { "id": "byName", "options": "humidity_avg" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Avg Humidity" }] },
+          { "matcher": { "id": "byName", "options": "temp_f_avg" }, "properties": [{ "id": "unit", "value": "fahrenheit" }, { "id": "displayName", "value": "Avg Temp (°F)" }] },
+          { "matcher": { "id": "byName", "options": "rank" }, "properties": [{ "id": "displayName", "value": "Rank" }] }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 38 },
+      "id": 12,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": false, "displayName": "Rank" }] },
+      "title": "Most Humid 15 Days (Last Year)",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT day, humidity_avg, temp_f_avg, rank FROM analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "streak_start" }, "properties": [{ "id": "displayName", "value": "Start" }] },
+          { "matcher": { "id": "byName", "options": "streak_end" }, "properties": [{ "id": "displayName", "value": "End" }] },
+          { "matcher": { "id": "byName", "options": "duration_hours" }, "properties": [{ "id": "displayName", "value": "Hours" }] },
+          { "matcher": { "id": "byName", "options": "avg_humidity" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Avg Humidity" }] },
+          { "matcher": { "id": "byName", "options": "peak_humidity" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "displayName", "value": "Peak Humidity" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 47 },
+      "id": 13,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Hours" }] },
+      "title": "Longest High-Humidity Streaks (≥60%, ≥1 hr)",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+          "rawSql": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": ["garagewatch", "iot", "environment"],
+  "templating": {
+    "list": [
+      {
+        "hide": 2,
+        "includeAll": false,
+        "name": "DS_GARAGEDB",
+        "options": [],
+        "query": "postgres",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GarageWatch",
+  "uid": "garagewatch-main",
+  "version": 1
+}
