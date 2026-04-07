@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: garage
+    database: garage_data
+    schema: public
+    loaded_at_field: timestamp
+    freshness:
+      warn_after: {count: 2, period: hour}
+      error_after: {count: 6, period: hour}
+    tables:
+      - name: readings
+        description: "Raw sensor readings from the SHT31D temperature/humidity sensor"
+        columns:
+          - name: timestamp
+            description: "UTC timestamp when the reading was taken"
+          - name: temperature_c
+            description: "Temperature in Celsius"
+          - name: temperature_f
+            description: "Temperature in Fahrenheit"
+          - name: humidity_percent
+            description: "Relative humidity percentage"

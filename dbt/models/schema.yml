@@ -1,0 +1,68 @@
+version: 2
+
+models:
+  - name: stg_readings
+    description: "Cleaned view of raw sensor readings. Filters out physically impossible values and exposes local timestamps."
+    columns:
+      - name: read_at_utc
+        description: "UTC timestamp of the reading"
+        tests:
+          - not_null
+      - name: read_at_local
+        description: "Reading timestamp in US/Eastern local time"
+        tests:
+          - not_null
+      - name: temperature_c
+        description: "Temperature in Celsius (filtered: -20 to 60)"
+        tests:
+          - not_null
+      - name: temperature_f
+        description: "Temperature in Fahrenheit (filtered: -4 to 140)"
+        tests:
+          - not_null
+      - name: humidity_percent
+        description: "Relative humidity percentage (filtered: 0 to 100)"
+        tests:
+          - not_null
+
+  - name: daily_summary
+    description: "Daily min/max/avg temperature and humidity aggregated by local calendar day."
+    columns:
+      - name: day
+        description: "Local calendar date"
+        tests:
+          - not_null
+          - unique
+
+  - name: monthly_summary
+    description: "Monthly temperature and humidity aggregates including percentiles for distribution charts."
+    columns:
+      - name: month
+        description: "First day of the calendar month"
+        tests:
+          - not_null
+          - unique
+
+  - name: hourly_profile
+    description: "Average temperature and humidity by hour-of-day × calendar month. 288 rows max."
+    columns:
+      - name: month_num
+        description: "Calendar month number (1-12)"
+      - name: hour_of_day
+        description: "Hour of day (0-23)"
+
+  - name: extreme_days
+    description: "Top 15 coldest, hottest, and most humid days in the past year."
+    columns:
+      - name: category
+        description: "One of: coldest, hottest, most_humid"
+      - name: rank
+        description: "Rank within the category (1 = most extreme)"
+
+  - name: humidity_streaks
+    description: "Consecutive high-humidity windows (>=60%) lasting at least 1 hour, ordered by duration."
+    columns:
+      - name: streak_start
+        description: "Start of the high-humidity window"
+      - name: duration_hours
+        description: "Length of the streak in hours"

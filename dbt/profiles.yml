@@ -1,0 +1,12 @@
+garagewatch:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: garage_user
+      password: "{{ env_var('GARAGE_DB_PASSWORD') }}"
+      port: 5432
+      dbname: garage_data
+      schema: analytics
+      threads: 1
