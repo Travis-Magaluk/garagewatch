@@ -1,4 +1,14 @@
 venv/
+.venv/
+
+# AWS credentials / secrets
+.env
+*.env
+.aws/
+
+# dbt runtime artifacts
+dbt/target/
+dbt/.user.yml
 
 # Logs and data files
 *.log
@@ -8,6 +18,7 @@ __pycache__/
 .env
 
 startup_instructions.md
-suggestions.txt
+
+project_suggestions/
 CLAUDE.md
 
