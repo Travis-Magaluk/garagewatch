@@ -8,7 +8,7 @@ import psycopg2
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-import alerter
+import scripts.alerter as alerter
 
 load_dotenv()
 
@@ -16,10 +16,10 @@ load_dotenv()
 LOG_FILE = "/home/travismagaluk/garagewatch/logger.log"
 
 DB_CONFIG = {
-    "host": "localhost",
-    "dbname": "garage_data",
-    "user": "garage_user",
-    "password": "Bl1ssF@ncy!"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "dbname": os.getenv("DB_NAME", "garage_data"),
+    "user": os.getenv("DB_USER", "garage_user"),
+    "password": os.getenv("DB_PASSWORD"),
 }
 
 def write_log(message):
