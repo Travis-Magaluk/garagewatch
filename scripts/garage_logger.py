@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 
+import logging
+import logging.handlers
+import os
 import time
+from datetime import datetime
+from pathlib import Path
+
+import adafruit_sht31d
 import board
 import busio
-import adafruit_sht31d
 import psycopg2
-from datetime import datetime
-import os
 from dotenv import load_dotenv
+
 import scripts.alerter as alerter
 
 load_dotenv()
-
-# === CONFIG ===
-LOG_FILE = "/home/travismagaluk/garagewatch/logger.log"
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -22,43 +24,62 @@ DB_CONFIG = {
     "password": os.getenv("DB_PASSWORD"),
 }
 
-def write_log(message):
-    now = datetime.now().isoformat()
-    with open(LOG_FILE, "a") as f:
-        f.write(f"{now} - {message}\n")
+
+def _setup_logging():
+    log_format = "%(asctime)s %(levelname)s %(message)s"
+    handlers = [logging.StreamHandler()]
+
+    log_dir = Path(__file__).parent.parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+    handlers.append(
+        logging.handlers.RotatingFileHandler(
+            log_dir / "garage_logger.log",
+            maxBytes=1_000_000,
+            backupCount=3,
+        )
+    )
+
+    logging.basicConfig(level=logging.INFO, format=log_format, handlers=handlers)
+
+
+log = logging.getLogger(__name__)
+
 
 def connect_db():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.autocommit = True
         return conn
-    except Exception as e:
-        write_log(f"❌ Failed to connect to DB: {e}")
+    except psycopg2.OperationalError as e:
+        log.error("Failed to connect to DB: %s", e)
         return None
+
 
 def init_sensor():
     while True:
         try:
             i2c = busio.I2C(board.SCL, board.SDA)
             sensor = adafruit_sht31d.SHT31D(i2c)
-            write_log("✅ Sensor initialized.")
+            log.info("Sensor initialized.")
             return sensor
         except Exception as e:
-            write_log(f"⚠️ Sensor init failed, retrying in 5s: {e}")
+            log.warning("Sensor init failed, retrying in 5s: %s", e)
             time.sleep(5)
 
-print("Logging sensor data to PostgreSQL. Press Ctrl+C to stop.\n")
-write_log("🚀 Logger started.")
+
+if not os.getenv("DB_PASSWORD"):
+    raise EnvironmentError("DB_PASSWORD environment variable is not set")
+
+_setup_logging()
+log.info("Logger started.")
 
 sensor = init_sensor()
-
 conn = connect_db()
 cur = conn.cursor() if conn else None
 
 try:
     while True:
         try:
-            # Reconnect if needed
             if conn is None or conn.closed:
                 conn = connect_db()
                 cur = conn.cursor() if conn else None
@@ -69,7 +90,7 @@ try:
                 humidity = sensor.relative_humidity
                 timestamp = datetime.now()
 
-                print(f"{timestamp.isoformat()} - {temperature_f:.2f}°F, {humidity:.2f}%")
+                log.info("%.2f°F, %.2f%%", temperature_f, humidity)
 
                 cur.execute(
                     """
@@ -78,17 +99,18 @@ try:
                     """,
                     (timestamp, temperature_c, temperature_f, humidity)
                 )
-                alerter.check_and_alert(conn, write_log)
+                alerter.check_and_alert(conn)
             else:
-                write_log("⚠️ No DB cursor — skipping insert")
+                log.warning("No DB cursor — skipping insert")
 
         except Exception as e:
-            write_log(f"[WARN] Sensor or DB insert failed: {e}")
+            log.warning("Sensor or DB insert failed: %s", e)
 
-        time.sleep(1800)  # 30 minutes
+        time.sleep(1800)
 
 except KeyboardInterrupt:
-    print("\nLogging stopped. Final entry written.")
-    write_log("🛑 Logger stopped by user.")
-    if cur: cur.close()
-    if conn: conn.close()
+    log.info("Logger stopped by user.")
+    if cur:
+        cur.close()
+    if conn:
+        conn.close()

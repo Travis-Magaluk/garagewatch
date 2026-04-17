@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import os
 import smtplib
 from datetime import datetime, timedelta
@@ -10,6 +11,8 @@ ROLLING_WINDOW_HOURS = 12
 COOLDOWN_HOURS = 24
 
 _last_alert_sent = None
+
+log = logging.getLogger(__name__)
 
 
 def _get_rolling_avg(conn):
@@ -48,26 +51,26 @@ def _send_email(avg_humidity):
         smtp.send_message(msg)
 
 
-def check_and_alert(conn, write_log):
+def check_and_alert(conn):
     global _last_alert_sent
 
     avg = _get_rolling_avg(conn)
     if avg is None:
         return
 
-    write_log(f"[ALERT CHECK] {ROLLING_WINDOW_HOURS}h avg humidity: {avg:.1f}%")
+    log.info("%dh avg humidity: %.1f%%", ROLLING_WINDOW_HOURS, avg)
 
     if avg <= HUMIDITY_THRESHOLD:
         return
 
     now = datetime.now()
     if _last_alert_sent and (now - _last_alert_sent) < timedelta(hours=COOLDOWN_HOURS):
-        write_log(f"[ALERT] Threshold exceeded ({avg:.1f}%) but cooldown active — skipping email")
+        log.info("Threshold exceeded (%.1f%%) but cooldown active — skipping email", avg)
         return
 
     try:
         _send_email(avg)
         _last_alert_sent = now
-        write_log(f"[ALERT] Email sent — {ROLLING_WINDOW_HOURS}h avg humidity {avg:.1f}% exceeds {HUMIDITY_THRESHOLD}%")
+        log.info("Alert email sent — %dh avg humidity %.1f%% exceeds %.1f%%", ROLLING_WINDOW_HOURS, avg, HUMIDITY_THRESHOLD)
     except Exception as e:
-        write_log(f"[ALERT] Failed to send email: {e}")
+        log.error("Failed to send alert email: %s", e)
