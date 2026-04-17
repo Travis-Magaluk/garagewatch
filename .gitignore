@@ -11,6 +11,7 @@ dbt/target/
 dbt/.user.yml
 
 # Logs and data files
+logs/
 *.log
 humidity_log.csv
 log_archive/

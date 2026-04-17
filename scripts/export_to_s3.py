@@ -10,9 +10,12 @@ Watermark pattern:
 """
 
 import json
+import logging
+import logging.handlers
 import os
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
 import boto3
 import psycopg2
@@ -34,10 +37,34 @@ DB_CONFIG = {
 }
 
 
+def _setup_logging():
+    log_format = "%(asctime)s %(levelname)s %(message)s"
+    handlers = [logging.StreamHandler()]
+
+    log_dir = Path(__file__).parent.parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+    handlers.append(
+        logging.handlers.RotatingFileHandler(
+            log_dir / "export_to_s3.log",
+            maxBytes=1_000_000,
+            backupCount=3,
+        )
+    )
+
+    logging.basicConfig(level=logging.INFO, format=log_format, handlers=handlers)
+
+
+log = logging.getLogger(__name__)
+
+
 def get_watermark(s3):
-    obj = s3.get_object(Bucket=S3_BUCKET, Key=WATERMARK_KEY)
-    data = json.loads(obj["Body"].read())
-    return data["last_exported_timestamp"]
+    try:
+        obj = s3.get_object(Bucket=S3_BUCKET, Key=WATERMARK_KEY)
+        data = json.loads(obj["Body"].read())
+        return data["last_exported_timestamp"]
+    except s3.exceptions.NoSuchKey:
+        log.warning("No watermark found — first run, exporting all rows.")
+        return "1970-01-01T00:00:00"
 
 
 def update_watermark(s3, new_timestamp):
@@ -46,7 +73,12 @@ def update_watermark(s3, new_timestamp):
 
 
 def fetch_rows(watermark_ts):
-    conn = psycopg2.connect(**DB_CONFIG)
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+    except psycopg2.OperationalError as e:
+        log.error("Could not connect to database: %s", e)
+        raise
+
     cur = conn.cursor()
     cur.execute(
         """
@@ -93,34 +125,43 @@ def write_to_s3(s3, table):
                 local_path = os.path.join(dirpath, filename)
                 relative = os.path.relpath(local_path, tmpdir)
                 s3_key = f"{PARQUET_PREFIX}/{relative.replace('part-0.parquet', f'readings_{now_str}.parquet')}"
-                print(f"  Uploading {s3_key}")
-                s3.upload_file(local_path, S3_BUCKET, s3_key)
+                try:
+                    s3.upload_file(local_path, S3_BUCKET, s3_key)
+                    log.info("Uploaded %s", s3_key)
+                except Exception as e:
+                    log.error("Failed to upload %s: %s", s3_key, e)
+                    raise
 
 
 def main():
+    _setup_logging()
+
+    if not os.getenv("DB_PASSWORD"):
+        raise EnvironmentError("DB_PASSWORD environment variable is not set")
+
     s3 = boto3.client("s3")
 
-    print("Reading watermark...")
+    log.info("Reading watermark...")
     watermark = get_watermark(s3)
-    print(f"  Last exported: {watermark}")
+    log.info("Last exported: %s", watermark)
 
-    print("Fetching rows from Postgres...")
+    log.info("Fetching rows from Postgres...")
     rows = fetch_rows(watermark)
-    print(f"  Rows fetched: {len(rows)}")
+    log.info("Rows fetched: %d", len(rows))
 
     if not rows:
-        print("Nothing to export. Exiting.")
+        log.info("Nothing to export. Exiting.")
         return
 
     table = rows_to_arrow_table(rows)
 
-    print("Writing to S3...")
+    log.info("Writing to S3...")
     write_to_s3(s3, table)
 
     latest_ts = max(r[0] for r in rows)
     update_watermark(s3, latest_ts.isoformat())
-    print(f"  Watermark updated to: {latest_ts.isoformat()}")
-    print("Done.")
+    log.info("Watermark updated to: %s", latest_ts.isoformat())
+    log.info("Export complete.")
 
 
 if __name__ == "__main__":
