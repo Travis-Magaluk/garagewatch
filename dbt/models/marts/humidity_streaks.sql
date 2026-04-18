@@ -31,8 +31,8 @@ streaks as (
         count(*)                        as reading_count,
         -- 30 min per reading
         count(*) * 30                   as duration_minutes,
-        avg(humidity_percent)::numeric(5,2) as avg_humidity,
-        max(humidity_percent)::numeric(5,2) as peak_humidity
+        cast(avg(humidity_percent) as decimal(5,2)) as avg_humidity,
+        cast(max(humidity_percent) as decimal(5,2)) as peak_humidity
     from grouped
     where is_high = 1
     group by grp, is_high
