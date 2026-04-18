@@ -7,7 +7,7 @@ with recent as (
         read_at_utc,
         lead(read_at_utc) over (order by read_at_utc) as next_read
     from {{ ref('stg_readings') }}
-    where read_at_utc >= now() - interval '7 days'
+    where read_at_utc >= now() - interval '7' day
 ),
 
 gaps as (
@@ -16,7 +16,7 @@ gaps as (
         next_read   as gap_end,
         next_read - read_at_utc as gap_duration
     from recent
-    where next_read - read_at_utc > interval '2 hours'
+    where next_read - read_at_utc > interval '2' hour
 )
 
 -- dbt singular tests pass when 0 rows are returned
