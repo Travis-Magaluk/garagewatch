@@ -1,33 +1,39 @@
 #!/usr/bin/env python3
 """
-Incremental export from Pi Postgres to S3 Parquet.
+Incremental export from Pi Postgres to S3 as gzipped CSV.
 
 Watermark pattern:
   1. Read last exported timestamp from S3
   2. Query only rows newer than the watermark
-  3. Write as Parquet with Hive partitioning (year=YYYY/month=MM)
+  3. Write as gzipped CSV with Hive partitioning (year=YYYY/month=MM)
   4. Update watermark to max timestamp in this batch
+
+Emits gzipped CSV instead of Parquet because 32-bit Python on this Pi has no
+pyarrow wheels. A cloud-side transform converts raw CSV to Parquet under
+s3://garagewatch-data/curated/readings/ (medallion bronze → silver).
 """
 
+import csv
+import gzip
 import json
 import logging
 import logging.handlers
 import os
 import tempfile
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
 import boto3
 import psycopg2
-import pyarrow as pa
-import pyarrow.parquet as pq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 S3_BUCKET = "garagewatch-data"
 WATERMARK_KEY = "watermark.json"
-PARQUET_PREFIX = "raw/readings"
+CSV_PREFIX = "raw/readings"
+CSV_HEADER = ["timestamp", "temperature_c", "temperature_f", "humidity_percent"]
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -95,42 +101,38 @@ def fetch_rows(watermark_ts):
     return rows
 
 
-def rows_to_arrow_table(rows):
-    timestamps, temp_c, temp_f, humidity = zip(*rows)
-    table = pa.table({
-        "timestamp":        pa.array(timestamps, type=pa.timestamp("us")),
-        "temperature_c":    pa.array(temp_c,     type=pa.float64()),
-        "temperature_f":    pa.array(temp_f,     type=pa.float64()),
-        "humidity_percent": pa.array(humidity,   type=pa.float64()),
-    })
-    # Add partition columns for Hive-style layout (year=YYYY/month=MM)
-    ts_col = table.column("timestamp")
-    table = table.append_column("year",  pa.array([str(t.as_py().year) for t in ts_col]))
-    table = table.append_column("month", pa.array([str(t.as_py().month).zfill(2) for t in ts_col]))
-    return table
+def partition_rows(rows):
+    """Group rows by (year, month) for Hive-style partitioning."""
+    partitions = defaultdict(list)
+    for row in rows:
+        ts = row[0]
+        key = (ts.year, ts.month)
+        partitions[key].append(row)
+    return partitions
 
 
-def write_to_s3(s3, table):
+def write_to_s3(s3, rows):
     now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    partitions = partition_rows(rows)
+
     with tempfile.TemporaryDirectory() as tmpdir:
-        pq.write_to_dataset(
-            table,
-            root_path=tmpdir,
-            partition_cols=["year", "month"],
-        )
-        for dirpath, _, filenames in os.walk(tmpdir):
-            for filename in filenames:
-                if not filename.endswith(".parquet"):
-                    continue
-                local_path = os.path.join(dirpath, filename)
-                relative = os.path.relpath(local_path, tmpdir)
-                s3_key = f"{PARQUET_PREFIX}/{relative.replace('part-0.parquet', f'readings_{now_str}.parquet')}"
-                try:
-                    s3.upload_file(local_path, S3_BUCKET, s3_key)
-                    log.info("Uploaded %s", s3_key)
-                except Exception as e:
-                    log.error("Failed to upload %s: %s", s3_key, e)
-                    raise
+        for (year, month), part_rows in partitions.items():
+            filename = f"readings_{now_str}.csv.gz"
+            local_path = os.path.join(tmpdir, filename)
+
+            with gzip.open(local_path, "wt", newline="", encoding="utf-8") as gz:
+                writer = csv.writer(gz)
+                writer.writerow(CSV_HEADER)
+                for ts, temp_c, temp_f, humidity in part_rows:
+                    writer.writerow([ts.isoformat(), temp_c, temp_f, humidity])
+
+            s3_key = f"{CSV_PREFIX}/year={year}/month={month:02d}/{filename}"
+            try:
+                s3.upload_file(local_path, S3_BUCKET, s3_key)
+                log.info("Uploaded %s (%d rows)", s3_key, len(part_rows))
+            except Exception as e:
+                log.error("Failed to upload %s: %s", s3_key, e)
+                raise
 
 
 def main():
@@ -153,10 +155,8 @@ def main():
         log.info("Nothing to export. Exiting.")
         return
 
-    table = rows_to_arrow_table(rows)
-
     log.info("Writing to S3...")
-    write_to_s3(s3, table)
+    write_to_s3(s3, rows)
 
     latest_ts = max(r[0] for r in rows)
     update_watermark(s3, latest_ts.isoformat())
