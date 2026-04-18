@@ -4,7 +4,7 @@
 
 select
     cast(timestamp as timestamp)                                                      as read_at_utc,
-    at_timezone(cast(timestamp as timestamp with time zone), 'America/New_York')      as read_at_local,
+    cast(at_timezone(cast(timestamp as timestamp with time zone), 'America/New_York') as timestamp) as read_at_local,
     cast(temperature_c as decimal(5,2))                                               as temperature_c,
     cast(temperature_f as decimal(5,2))                                               as temperature_f,
     cast(humidity_percent as decimal(5,2))                                            as humidity_percent

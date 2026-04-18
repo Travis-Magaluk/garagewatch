@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: garage
-    database: garagewatch_raw
-    schema: public
+    database: awsdatacatalog
+    schema: garagewatch_raw
     loaded_at_field: timestamp
     freshness:
       warn_after: {count: 2, period: hour}
