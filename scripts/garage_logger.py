@@ -106,7 +106,7 @@ try:
         except Exception as e:
             log.warning("Sensor or DB insert failed: %s", e)
 
-        time.sleep(1800)
+        time.sleep(60)
 
 except KeyboardInterrupt:
     log.info("Logger stopped by user.")
