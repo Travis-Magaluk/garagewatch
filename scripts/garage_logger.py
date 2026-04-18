@@ -13,7 +13,7 @@ import busio
 import psycopg2
 from dotenv import load_dotenv
 
-import scripts.alerter as alerter
+import alerter
 
 load_dotenv()
 
