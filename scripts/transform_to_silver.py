@@ -70,7 +70,9 @@ def list_all_bronze_for_partition(s3, year, month):
 def read_csv_gz(s3, key):
     obj = s3.get_object(Bucket=BUCKET, Key=key)
     with gzip.open(io.BytesIO(obj["Body"].read()), "rt") as f:
-        return pd.read_csv(f, parse_dates=["timestamp"])
+        df = pd.read_csv(f)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="ISO8601", utc=True)
+    return df
 
 
 def write_parquet(s3, df, year, month):
@@ -101,6 +103,8 @@ def main():
         df = (pd.concat(frames, ignore_index=True)
                 .drop_duplicates(subset=["timestamp"])
                 .sort_values("timestamp"))
+        # Athena TIMESTAMP doesn't support tz-aware values — strip to naive UTC
+        df["timestamp"] = df["timestamp"].dt.tz_convert("UTC").dt.tz_localize(None)
         write_parquet(s3, df, year, month)
 
     s3.put_object(

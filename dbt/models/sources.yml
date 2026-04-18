@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: garage
-    database: garage_data
+    database: garagewatch_raw
     schema: public
     loaded_at_field: timestamp
     freshness:
