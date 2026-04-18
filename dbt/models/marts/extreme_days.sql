@@ -4,7 +4,7 @@
 with last_year as (
     select *
     from {{ ref('daily_summary') }}
-    where day >= current_date - interval '1 year'
+    where day >= current_date - interval '1' year
 ),
 
 coldest as (

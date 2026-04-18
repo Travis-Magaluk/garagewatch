@@ -3,11 +3,11 @@
 -- and exposes the timestamp in both UTC and US/Eastern local time.
 
 select
-    timestamp::timestamptz                                          as read_at_utc,
-    timestamp::timestamptz at time zone 'America/New_York'         as read_at_local,
-    temperature_c::numeric(5,2)                                    as temperature_c,
-    temperature_f::numeric(5,2)                                    as temperature_f,
-    humidity_percent::numeric(5,2)                                  as humidity_percent
+    cast(timestamp as timestamp)                                                      as read_at_utc,
+    cast(at_timezone(cast(timestamp as timestamp with time zone), 'America/New_York') as timestamp) as read_at_local,
+    cast(temperature_c as decimal(5,2))                                               as temperature_c,
+    cast(temperature_f as decimal(5,2))                                               as temperature_f,
+    cast(humidity_percent as decimal(5,2))                                            as humidity_percent
 from {{ source('garage', 'readings') }}
 where
     temperature_c between -20 and 60

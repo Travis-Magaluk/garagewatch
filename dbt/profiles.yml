@@ -10,3 +10,11 @@ garagewatch:
       dbname: garage_data
       schema: analytics
       threads: 1
+    athena:
+      type: athena
+      s3_staging_dir: s3://garagewatch-data/athena-results/
+      region_name: us-east-1
+      database: awsdatacatalog
+      schema: garagewatch_analytics
+      aws_profile_name: garagewatch-transformer
+      threads: 1
