@@ -36,8 +36,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT read_at_utc AS time, temperature_f AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
-          "format": "time_series",
+          "rawSQL": "SELECT read_at_utc AS time, temperature_f AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -69,8 +69,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT read_at_utc AS time, humidity_percent AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
-          "format": "time_series",
+          "rawSQL": "SELECT read_at_utc AS time, humidity_percent AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -98,8 +98,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT current_timestamp AS time, date_diff('minute', max(read_at_utc), current_timestamp) AS value FROM garagewatch_analytics.stg_readings",
-          "format": "time_series",
+          "rawSQL": "SELECT current_timestamp AS time, date_diff('minute', max(read_at_utc), current_timestamp) AS value FROM garagewatch_analytics.stg_readings",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -117,8 +117,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT current_timestamp AS time, count(*) AS \"Total Readings\" FROM garagewatch_analytics.stg_readings",
-          "format": "time_series",
+          "rawSQL": "SELECT current_timestamp AS time, count(*) AS \"Total Readings\" FROM garagewatch_analytics.stg_readings",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -140,8 +140,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
-          "format": "time_series",
+          "rawSQL": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -165,8 +165,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
-          "format": "time_series",
+          "rawSQL": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -189,8 +189,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
-          "format": "time_series",
+          "rawSQL": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -213,8 +213,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
-          "format": "time_series",
+          "rawSQL": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -230,8 +230,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, temp_f_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
-          "format": "time_series",
+          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, temp_f_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -247,8 +247,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, humidity_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
-          "format": "time_series",
+          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, humidity_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -273,8 +273,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
-          "format": "table",
+          "rawSQL": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
+          "format": 0,
           "refId": "A"
         }
       ]
@@ -298,8 +298,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT day, humidity_avg, temp_f_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
-          "format": "table",
+          "rawSQL": "SELECT day, humidity_avg, temp_f_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
+          "format": 0,
           "refId": "A"
         }
       ]
@@ -324,8 +324,8 @@
       "targets": [
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
-          "rawSql": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM garagewatch_analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
-          "format": "table",
+          "rawSQL": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM garagewatch_analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
+          "format": 0,
           "refId": "A"
         }
       ]
