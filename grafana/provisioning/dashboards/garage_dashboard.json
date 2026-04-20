@@ -2,7 +2,7 @@
   "__inputs": [],
   "__requires": [
     { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
-    { "type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0" }
+    { "type": "datasource", "id": "grafana-athena-datasource", "name": "Amazon Athena", "version": "1.0.0" }
   ],
   "annotations": { "list": [] },
   "editable": true,
@@ -12,7 +12,7 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -35,15 +35,15 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT read_at_utc AS time, temperature_f AS value FROM analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT read_at_utc AS time, temperature_f AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -68,15 +68,15 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT read_at_utc AS time, humidity_percent AS value FROM analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT read_at_utc AS time, humidity_percent AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -97,15 +97,15 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT now() AS time, EXTRACT(EPOCH FROM (now() - max(read_at_utc))) / 60 AS value FROM analytics.stg_readings",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT current_timestamp AS time, date_diff('minute', max(read_at_utc), current_timestamp) AS value FROM garagewatch_analytics.stg_readings",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": { "unit": "none" }
       },
@@ -116,15 +116,15 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT now() AS time, count(*) AS \"Total Readings\" FROM analytics.stg_readings",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT current_timestamp AS time, count(*) AS \"Total Readings\" FROM garagewatch_analytics.stg_readings",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": { "custom": { "lineWidth": 2 } },
         "overrides": [
@@ -139,15 +139,15 @@
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": { "custom": { "lineWidth": 2 } },
         "overrides": [
@@ -164,15 +164,15 @@
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -188,15 +188,15 @@
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -212,15 +212,15 @@
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": { "defaults": { "unit": "fahrenheit" } },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
       "id": 9,
@@ -229,15 +229,15 @@
       "type": "heatmap",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT make_timestamp(2024, month_num, 1, hour_of_day, 0, 0) AS time, temp_f_avg AS value FROM analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, temp_f_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": { "defaults": { "unit": "percent" } },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
       "id": 10,
@@ -246,15 +246,15 @@
       "type": "heatmap",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT make_timestamp(2024, month_num, 1, hour_of_day, 0, 0) AS time, humidity_avg AS value FROM analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, humidity_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
           "format": "time_series",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -272,15 +272,15 @@
       "type": "table",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
           "format": "table",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -297,15 +297,15 @@
       "type": "table",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT day, humidity_avg, temp_f_avg, rank FROM analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT day, humidity_avg, temp_f_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
           "format": "table",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -323,8 +323,8 @@
       "type": "table",
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_GARAGEDB}" },
-          "rawSql": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
+          "rawSql": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM garagewatch_analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
           "format": "table",
           "refId": "A"
         }
@@ -339,9 +339,9 @@
       {
         "hide": 2,
         "includeAll": false,
-        "name": "DS_GARAGEDB",
+        "name": "DS_ATHENA",
         "options": [],
-        "query": "postgres",
+        "query": "grafana-athena-datasource",
         "refresh": 1,
         "type": "datasource"
       }
