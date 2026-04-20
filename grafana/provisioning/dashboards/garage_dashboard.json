@@ -37,8 +37,8 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT read_at_utc AS time, temperature_f AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
-          "format": 0,
+          "rawSQL": "SELECT read_at_utc AS time, CAST(temperature_f AS DOUBLE) AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -71,8 +71,8 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT read_at_utc AS time, humidity_percent AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
-          "format": 0,
+          "rawSQL": "SELECT read_at_utc AS time, CAST(humidity_percent AS DOUBLE) AS value FROM garagewatch_analytics.stg_readings ORDER BY read_at_utc DESC LIMIT 1",
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -285,7 +285,7 @@
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
           "rawSQL": "SELECT day, temp_f_avg, temp_f_extreme, humidity_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'coldest' ORDER BY rank",
-          "format": 0,
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -311,7 +311,7 @@
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
           "rawSQL": "SELECT day, humidity_avg, temp_f_avg, rank FROM garagewatch_analytics.extreme_days WHERE category = 'most_humid' ORDER BY rank",
-          "format": 0,
+          "format": 1,
           "refId": "A"
         }
       ]
@@ -338,7 +338,7 @@
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
           "rawSQL": "SELECT streak_start, streak_end, duration_hours, avg_humidity, peak_humidity FROM garagewatch_analytics.humidity_streaks ORDER BY duration_hours DESC LIMIT 20",
-          "format": 0,
+          "format": 1,
           "refId": "A"
         }
       ]
