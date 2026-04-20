@@ -9,6 +9,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GARAGE_DB_PASSWORD=${DB_PASSWORD}
       - GF_INSTALL_PLUGINS=grafana-athena-datasource
+      - ATHENA_ACCESS_KEY_ID=${ATHENA_ACCESS_KEY_ID}                                                                 
+      - ATHENA_SECRET_ACCESS_KEY=${ATHENA_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

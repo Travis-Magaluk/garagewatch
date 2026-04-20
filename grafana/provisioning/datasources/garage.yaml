@@ -14,3 +14,17 @@ datasources:
       timescaledb: false
     isDefault: true
     editable: true
+  - name: GarageAthena                                                                                                              
+    type: grafana-athena-datasource
+    isDefault: false
+    editable: true                                                                                                                  
+    jsonData:
+      authType: keys                                                                                                                
+      defaultRegion: us-east-1
+      catalog: AwsDataCatalog
+      database: garagewatch_analytics                                                                                                     
+      workgroup: primary
+      outputLocation: s3://garagewatch-data/athena-results/                                                                         
+    secureJsonData:
+      accessKey: ${ATHENA_ACCESS_KEY_ID}                                                                                            
+      secretKey: ${ATHENA_SECRET_ACCESS_KEY}   
