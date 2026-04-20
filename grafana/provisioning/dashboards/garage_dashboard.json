@@ -145,7 +145,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT read_at_utc AS time, temperature_f AS \"Temperature (°F)\", humidity_percent AS \"Humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "rawSQL": "SELECT read_at_utc AS time, CAST(temperature_f AS DOUBLE) AS \"Temperature (°F)\", CAST(humidity_percent AS DOUBLE) AS \"Humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
           "format": 0,
           "refId": "A"
         }
@@ -171,7 +171,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT read_at_utc AS time, AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg temp (°F)\", AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg temp (°F)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS \"7-day avg humidity (%)\", AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS \"30-day avg humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
+          "rawSQL": "SELECT read_at_utc AS time, CAST(AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS DOUBLE) AS \"7-day avg temp (°F)\", CAST(AVG(temperature_f) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS DOUBLE) AS \"30-day avg temp (°F)\", CAST(AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 335 PRECEDING AND CURRENT ROW) AS DOUBLE) AS \"7-day avg humidity (%)\", CAST(AVG(humidity_percent) OVER (ORDER BY read_at_utc ROWS BETWEEN 1439 PRECEDING AND CURRENT ROW) AS DOUBLE) AS \"30-day avg humidity (%)\" FROM garagewatch_analytics.stg_readings WHERE $__timeFilter(read_at_utc) ORDER BY time",
           "format": 0,
           "refId": "A"
         }
@@ -196,7 +196,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT day AS time, temp_f_min, temp_f_avg, temp_f_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "rawSQL": "SELECT CAST(day AS TIMESTAMP) AS time, CAST(temp_f_min AS DOUBLE) AS temp_f_min, CAST(temp_f_avg AS DOUBLE) AS temp_f_avg, CAST(temp_f_max AS DOUBLE) AS temp_f_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(CAST(day AS TIMESTAMP)) ORDER BY day",
           "format": 0,
           "refId": "A"
         }
@@ -221,7 +221,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT day AS time, humidity_min, humidity_avg, humidity_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(day) ORDER BY day",
+          "rawSQL": "SELECT CAST(day AS TIMESTAMP) AS time, CAST(humidity_min AS DOUBLE) AS humidity_min, CAST(humidity_avg AS DOUBLE) AS humidity_avg, CAST(humidity_max AS DOUBLE) AS humidity_max FROM garagewatch_analytics.daily_summary WHERE $__timeFilter(CAST(day AS TIMESTAMP)) ORDER BY day",
           "format": 0,
           "refId": "A"
         }
@@ -239,7 +239,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, temp_f_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, CAST(temp_f_avg AS DOUBLE) AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
           "format": 0,
           "refId": "A"
         }
@@ -257,7 +257,7 @@
         {
           "datasource": { "type": "grafana-athena-datasource", "uid": "${DS_ATHENA}" },
           "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default" },
-          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, humidity_avg AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
+          "rawSQL": "SELECT date_parse(concat('2024-', lpad(cast(month_num as varchar), 2, '0'), '-01 ', lpad(cast(hour_of_day as varchar), 2, '0'), ':00:00'), '%Y-%m-%d %H:%i:%S') AS time, CAST(humidity_avg AS DOUBLE) AS value FROM garagewatch_analytics.hourly_profile ORDER BY month_num, hour_of_day",
           "format": 0,
           "refId": "A"
         }
@@ -360,7 +360,7 @@
       }
     ]
   },
-  "time": { "from": "now-30d", "to": "now" },
+  "time": { "from": "now-90d", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
   "title": "GarageWatch",
