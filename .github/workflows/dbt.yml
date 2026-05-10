@@ -1,0 +1,60 @@
+name: dbt CI/CD
+                                                                                                                                      
+on:             
+  push:
+    branches: [main]
+    paths: ['dbt/**', 'scripts/transform_to_silver.py']   # dbt changes or transform script changes
+  schedule:                                                                                                                         
+    - cron: '30 * * * *'       # hourly at :30, after Pi export runs at :00
+  workflow_dispatch:            # allows manual trigger from Actions UI                                                             
+                
+permissions:                                                                                                                        
+  id-token: write   # required for OIDC token generation
+  contents: read
+                                                                                                                                    
+jobs:
+  dbt-run:                                                                                                                          
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5                                                                                               
+        with:
+          python-version: '3.12'                                                                                                    
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install dbt-athena-community pandas pyarrow
+
+      - name: Configure AWS credentials via OIDC                                                                                    
+        uses: aws-actions/configure-aws-credentials@v4
+        with:                                                                                                                       
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Write dbt profiles                                                                                                    
+        run: |
+          mkdir -p ~/.dbt                                                                                                           
+          cat > ~/.dbt/profiles.yml << 'EOF'
+          garagewatch:
+            target: athena
+            outputs:
+              athena:
+                type: athena                                                                                                        
+                s3_staging_dir: s3://garagewatch-data/athena-results/
+                region_name: us-east-1                                                                                              
+                database: garagewatch_raw
+                schema: garagewatch_analytics
+                threads: 1                                                                                                          
+          EOF
+                                                                                                                                    
+      - name: Transform bronze CSV to silver Parquet
+        run: python scripts/transform_to_silver.py
+
+      - name: Run dbt models
+        working-directory: dbt
+        run: dbt run --target athena
+
+      - name: Run dbt tests
+        working-directory: dbt
+        run: dbt test --target athena         
