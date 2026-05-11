@@ -21,26 +21,6 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Tailscale diagnostics
-        run: |
-          echo "=== Tailscale status ==="
-          tailscale status || true
-          echo ""
-          echo "=== Resolve 'garagepi' via Tailscale ==="
-          tailscale ip garagepi || echo "FAILED: tailscale ip"
-          echo ""
-          echo "=== getent hosts garagepi (system resolver) ==="
-          getent hosts garagepi || echo "FAILED: getent"
-          echo ""
-          echo "=== Ping garagepi ==="
-          ping -c 3 -W 5 garagepi || echo "FAILED: ping"
-          echo ""
-          echo "=== TCP probe on port 22 ==="
-          timeout 10 bash -c '</dev/tcp/garagepi/22 && echo OPEN' || echo "FAILED: port 22 unreachable"
-          echo ""
-          echo "=== Direct SSH handshake (verbose, no key) ==="
-          ssh -vvv -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no travismagaluk@garagepi exit 2>&1 | head -60 || true
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -48,7 +28,9 @@ jobs:
           username: travismagaluk
           key: ${{ secrets.PI_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /home/travismagaluk/garagewatch
             git pull origin main
-            pip install -r requirements.txt --quiet
+            ./venv/bin/pip install -r requirements.txt --quiet
             sudo systemctl restart garage_logger
+            sudo systemctl is-active --quiet garage_logger && echo "Service is active"
