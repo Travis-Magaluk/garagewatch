@@ -16,5 +16,4 @@ garagewatch:
       region_name: us-east-1
       database: awsdatacatalog
       schema: garagewatch_analytics
-      aws_profile_name: garagewatch-transformer
       threads: 1
