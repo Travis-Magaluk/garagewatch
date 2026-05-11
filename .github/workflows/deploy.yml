@@ -1,26 +1,26 @@
 name: Deploy to Pi
 
-  on:
-    push:
-      branches: [main]
-      paths:
-        - 'scripts/garage_logger.py'
-        - 'scripts/alerter.py'
-        - 'requirements.txt'
-        - 'scripts/export_to_s3.py'                                                                                                           
-                  
-  jobs:
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Deploy via SSH                                                                                                        
-          uses: appleboy/ssh-action@v1
-          with:                                                                                                                       
-            host: ${{ secrets.PI_SSH_HOST }}
-            username: travismagaluk
-            key: ${{ secrets.PI_SSH_KEY }}
-            script: |                                                                                                                 
-              cd /home/travismagaluk/garagewatch
-              git pull origin main                                                                                                    
-              pip install -r requirements.txt --quiet
-              sudo systemctl restart garage_logger
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/garage_logger.py'
+      - 'scripts/alerter.py'
+      - 'requirements.txt'
+      - 'scripts/export_to_s3.py'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PI_SSH_HOST }}
+          username: travismagaluk
+          key: ${{ secrets.PI_SSH_KEY }}
+          script: |
+            cd /home/travismagaluk/garagewatch
+            git pull origin main
+            pip install -r requirements.txt --quiet
+            sudo systemctl restart garage_logger
