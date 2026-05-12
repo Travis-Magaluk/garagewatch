@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths: ['dbt/**', 'scripts/transform_to_silver.py']   # dbt changes or transform script changes
-  schedule:                                                                                                                         
-    - cron: '30 * * * *'       # hourly at :30, after Pi export runs at :00
+  schedule:
+    - cron: '30 0 * * *'       # daily at 00:30 UTC, after Pi export runs at 00:00
   workflow_dispatch:            # allows manual trigger from Actions UI                                                             
                 
 permissions:                                                                                                                        
