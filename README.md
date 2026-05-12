@@ -45,7 +45,7 @@ flowchart TB
 ## Live dashboard
 
 <!-- Screenshot to be committed: docs/images/grafana-overview.png -->
-*Grafana overview (temperature + humidity, last 7 days) — screenshot coming soon.*
+*Grafana overview (temperature + humidity, last 7 days) — screenshot coming soon.* Panel breakdown in [`docs/dashboards.md`](docs/dashboards.md).
 
 ## Skills demonstrated
 
@@ -82,6 +82,8 @@ Data quality is enforced by dbt schema tests plus a singular test ([`dbt/tests/a
 
 **Visualization.** [`grafana/`](grafana/) provisions a containerized Grafana with the Athena datasource plugin and dashboards that query the gold marts directly.
 
+Deep dives: [`docs/architecture.md`](docs/architecture.md) · [`docs/dbt-models.md`](docs/dbt-models.md) · [`docs/data-quality.md`](docs/data-quality.md) · [`docs/dashboards.md`](docs/dashboards.md).
+
 ## Repository tour
 
 ```
@@ -111,6 +113,8 @@ Two GitHub Actions workflows automate the entire pipeline:
 - **[`deploy.yml`](.github/workflows/deploy.yml)** — triggered by pushes to the Pi-side scripts. Uses Tailscale OAuth to establish a private tunnel to the home network (no public IP exposure, no port-forwarding), SSHes into the Pi, pulls the latest code, and restarts the `garage_logger` systemd service. Fails fast (`set -euo pipefail`) and verifies the service is active before exiting.
 - **[`dbt.yml`](.github/workflows/dbt.yml)** — runs daily at 00:30 UTC and on any change to `dbt/` or `transform_to_silver.py`. Assumes an AWS role via OIDC (zero long-lived credentials), runs the silver transform, then `dbt run` and `dbt test` against Athena.
 
+Full walkthrough: [`docs/cicd.md`](docs/cicd.md).
+
 ## Run it yourself
 
 **Explore the data models — no AWS required:**
@@ -123,7 +127,7 @@ dbt compile                         # Renders the SQL with Jinja so you can read
 dbt docs generate && dbt docs serve # Browseable lineage DAG at localhost:8080
 ```
 
-**Run the full pipeline** requires a Raspberry Pi with an SHT31D sensor wired over I2C, a local PostgreSQL, and an AWS account with S3 + Athena + Glue. A reproduction guide (hardware BOM, wiring diagram, systemd unit, AWS bootstrap) is on the roadmap.
+**Run the full pipeline** requires a Raspberry Pi with an SHT31D sensor wired over I2C, a local PostgreSQL, and an AWS account with S3 + Athena + Glue. End-to-end reproduction guide (hardware BOM, wiring, systemd unit, AWS bootstrap, Tailscale): [`docs/setup-pi.md`](docs/setup-pi.md).
 
 ## Engineering learnings
 
@@ -141,7 +145,7 @@ Short, interview-ready writeups of real problems hit during the build:
 - Re-flash the Pi to 64-bit Raspberry Pi OS so Parquet can be written at the edge (currently deferred — the cloud-side conversion is working well).
 - Per-partition watermark in `transform_to_silver.py` to avoid re-reading old bronze files when partitions accumulate (design sketched in [the cost writeup](docs/learnings/s3-cost-optimization.md)).
 - Anomaly detection on the gold layer — currently only threshold-based humidity alerts via [`alerter.py`](scripts/alerter.py).
-- Add deep-dive docs for architecture, dbt models, CI/CD, dashboards, and Pi setup under `docs/`.
+- Pull-request preview builds for dbt against a PR-scoped Athena schema.
 
 ## Contact
 
