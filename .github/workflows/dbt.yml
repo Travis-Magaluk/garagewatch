@@ -51,6 +51,14 @@ jobs:
       - name: Transform bronze CSV to silver Parquet
         run: python scripts/transform_to_silver.py
 
+      # Fail the run if the silver source is stale (error_after: 6h in sources.yml).
+      # A 60s sensor cadence means >6h with no fresh rows is always abnormal — this
+      # catches both a stalled Pi export and missing Glue partitions before we build
+      # marts on stale data, and surfaces as a red workflow = an alert.
+      - name: Check source freshness
+        working-directory: dbt
+        run: dbt source freshness --target athena
+
       - name: Run dbt models
         working-directory: dbt
         run: dbt run --target athena
