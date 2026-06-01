@@ -10,7 +10,7 @@
 ```mermaid
 flowchart TB
     subgraph Pi["Raspberry Pi (on-prem)"]
-        SHT["SHT31D sensor (temp/humidity)"] -->|I2C (Inter-Integrated Circuit)| Logger["garage_logger.py<br/>systemd, 60s loop"]
+        SHT["SHT31D sensor (temp/humidity)"] -->|"I2C (Inter-Integrated Circuit)"| Logger["garage_logger.py<br/>systemd, 60s loop"]
         Logger -->|"INSERT"| PG[("PostgreSQL<br/>garage_data.readings")]
         PG --> Alerter["alerter.py<br/>12h rolling avg"]
         Alerter -->|SMTP| Email(("Email alert"))
