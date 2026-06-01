@@ -1,6 +1,6 @@
 # CI/CD
 
-Two GitHub Actions workflows automate the entire pipeline: one deploys Pi-side code to the Raspberry Pi sitting behind home-network NAT, and the other runs the daily silver transform plus the dbt build against AWS. Both avoid long-lived credentials — the Pi deploy uses Tailscale OAuth, the AWS workflow uses OIDC.
+Two GitHub Actions workflows automate the entire pipeline: one deploys Pi-side code to the Raspberry Pi sitting behind home-network (network address translation) NAT, and the other runs the daily silver transform plus the dbt build against AWS. Both avoid long-lived credentials — the Pi deploy uses Tailscale OAuth, the AWS workflow uses OIDC.
 
 ```mermaid
 flowchart TB
@@ -39,7 +39,7 @@ flowchart TB
 
 …or manually via `workflow_dispatch`.
 
-The interesting step is the first one — reaching a Raspberry Pi on a home network from a GitHub-hosted runner:
+The first step is reaching a Raspberry Pi on a home network from a GitHub-hosted runner:
 
 ```yaml
 - name: Connect to Tailscale
@@ -68,13 +68,13 @@ Tailscale gives the runner an ephemeral identity inside the tailnet for the dura
       sudo systemctl is-active --quiet garage_logger && echo "Service is active"
 ```
 
-A few small but load-bearing details:
+A few details:
 
 - **`set -euo pipefail`** — without it, a failed `git pull` followed by a successful `systemctl restart` would mark the job green. `pipefail` ensures the deploy fails loudly the moment any step does.
 - **`./venv/bin/pip`** — the Pi uses a venv that the systemd service points at. Using the absolute path avoids accidentally installing into the system Python.
 - **`systemctl is-active --quiet`** — the service might restart but immediately die if the new code has an import error. This line is a smoke test: it fails the workflow if the service isn't running 1 second after the restart.
 
-**Why Tailscale over alternatives.** A traditional approach would be port-forwarding SSH on the home router and exposing the Pi to the public internet, or running a Cloudflare tunnel. Tailscale wins on three axes: nothing is exposed publicly (the tailnet is private), the auth is OAuth-scoped to CI (`tag:ci`) rather than a long-lived password or SSH key on the open internet, and there's no router configuration. The OAuth credentials can be rotated and tagged separately from any human user.
+**Why Tailscale over alternatives.** A traditional approach would be port-forwarding SSH on the home router and exposing the Pi to the public internet, or running a Cloudflare tunnel. Tailscale wins on three accounts: nothing is exposed publicly (the tailnet is private), the auth is OAuth-scoped to CI (`tag:ci`) rather than a long-lived password or SSH key on the open internet, and there's no router configuration. The OAuth credentials can be rotated and tagged separately from any human user.
 
 ## `dbt.yml` — Build the warehouse
 
@@ -84,7 +84,7 @@ A few small but load-bearing details:
 - `schedule: cron: '30 0 * * *'` — daily at 00:30 UTC, after the Pi's midnight export
 - `workflow_dispatch`
 
-The schedule and the path filter are both load-bearing. Path-triggered runs catch dbt code changes; the schedule catches the daily data refresh.
+The schedule and the path filter both serve distinct purpopses. Path-triggered runs catch dbt code changes; the schedule catches the daily data refresh.
 
 ### Permissions and OIDC
 
@@ -104,7 +104,7 @@ This is the unlock for AWS OIDC. `id-token: write` lets GitHub mint a JSON Web T
     aws-region: us-east-1
 ```
 
-The AWS IAM role's trust policy is scoped to this repo and the `main` branch. No `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` lives in GitHub secrets — if the repo is ever compromised, there are no long-lived AWS credentials to steal. This is the modern way to wire CI to AWS, and it's worth knowing how to set up in an interview.
+The AWS IAM role's trust policy is scoped to this repo and the `main` branch. No `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` lives in GitHub secrets — if the repo is ever compromised, there are no long-lived AWS credentials to steal.
 
 ### dbt profile generated at runtime
 
@@ -126,7 +126,7 @@ The AWS IAM role's trust policy is scoped to this repo and the `main` branch. No
     EOF
 ```
 
-The profile is written inline rather than committed. This keeps the secret-shaped configuration (region, bucket, schemas) out of the repo and ties the runtime configuration to the workflow that uses it.
+The profile is generated at runtime because profiles.yml is a local developer file that lives in `~/.dbt/`, not in the repo. Writing it inline in the workflow step means CI always has a valid profile without requiring a separate committed config file.
 
 ### The four work steps
 
@@ -143,7 +143,7 @@ The profile is written inline rather than committed. This keeps the secret-shape
 
 ## Why daily, not hourly
 
-The dbt workflow used to run hourly. AWS billing showed an emerging overage on S3 Tier-1 requests (~2,700/month forecast against a 2,000 free-tier allowance). The fix was to reduce to a daily cadence — exhaustive analysis with the request math and a per-partition watermark refactor for `transform_to_silver.py` is in [`docs/learnings/s3-cost-optimization.md`](learnings/s3-cost-optimization.md).
+The dbt workflow used to run hourly. AWS billing showed an emerging overage on S3 Tier-1 requests (~2,700/month forecast against a 2,000 free-tier allowance). The fix was to reduce to a daily cadence. Exhaustive analysis with the request math and a per-partition watermark refactor for `transform_to_silver.py` is in [`docs/learnings/s3-cost-optimization.md`](learnings/s3-cost-optimization.md).
 
 ## Webhook deploy — superseded
 

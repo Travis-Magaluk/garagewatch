@@ -63,41 +63,22 @@ the same Hive partitioning (`year=YYYY/month=MM/`) and the same watermark
 pattern. A cloud-side job (Athena CTAS, Lambda, or Glue — TBD) converts
 these to Parquet in `s3://garagewatch-data/curated/readings/`.
 
-This is the **medallion architecture** — bronze (raw CSV) → silver (Parquet).
-The edge device stays lightweight and the format work happens in the cloud,
-which is how real IoT pipelines are built.
+This is the **medallion architecture** — bronze (raw CSV) → silver (Parquet) — where format conversion happens in the cloud rather than on the edge device.
 
-## What I'd say in an interview
+## Summary
 
-> "I hit a classic edge-device platform mismatch. My Raspberry Pi is 64-bit
-> hardware but was running a 32-bit OS — so the Python interpreter couldn't
-> use the aarch64 wheels that pyarrow publishes. After burning a few hours
-> trying to build from source and falling into a chain of version conflicts
-> (setuptools removing pkg_resources, Cython 3 incompatibility, source
-> tarball metadata issues), I stepped back and realized: the *correct*
-> architecture for an edge pipeline doesn't do Parquet conversion on the
-> edge anyway. I pivoted to staging gzipped CSV to S3 and moving the
-> Parquet conversion to a cloud transform. It unblocked the pipeline in an
-> afternoon, and the resulting architecture is actually more production-like
-> — the Pi stops being on the critical path for compute, and the cloud
-> handles the heavy format work where it scales better. The reflash to 64-bit
-> is still on the roadmap but is no longer blocking."
+The Pi runs a 32-bit OS on 64-bit hardware, so Python is 32-bit and pyarrow has no wheels for that platform. Source builds also fail due to toolchain issues. Rather than keep debugging, the simpler fix was to skip Parquet on the Pi entirely: export CSV to S3 and convert to Parquet in GitHub Actions. The reflash to 64-bit Raspberry Pi OS is still on the roadmap but isn't blocking anything.
 
 ## Lessons
 
-- `uname -m` shows the **kernel** arch, not the **userspace** arch. Always
-  also check `python3 -c "import platform; print(platform.architecture())"`
-  and `file $(which python3)` when debugging wheel compatibility.
-- Wheel filename tags (`cp311-cp311-linux_armv7l`) are the ground truth for
-  what pip can install. If the platform tag doesn't match what a package
-  publishes, you're out of luck regardless of what `--only-binary` you pass.
-- When a dependency install cascades into multiple unrelated-looking errors
-  (cmake → numpy → pkg_resources → version metadata → Cython), **step back**.
-  The fifth error is rarely the real problem. Ask "why am I building from
-  source at all?" — the answer often points to the real root cause.
-- Working around a blocker by changing the architecture is often better than
-  fighting the toolchain. A CSV + cloud transform isn't a hack — it's a
-  separation of concerns that real pipelines want anyway.
+- `uname -m` shows the **kernel** arch, not the **userspace** arch. Also check
+  `python3 -c "import platform; print(platform.architecture())"` and
+  `file $(which python3)` when debugging wheel issues.
+- Wheel filename tags (`cp311-cp311-linux_armv7l`) tell you exactly what pip
+  can install. If the platform tag doesn't match what a package publishes,
+  no install flag will fix it.
+- When a dependency install keeps failing with different-looking errors, check
+  whether you should be installing it on that machine at all.
 
 ## References
 

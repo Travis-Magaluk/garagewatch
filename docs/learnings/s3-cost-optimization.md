@@ -41,7 +41,7 @@ Since the sensor collects 1 reading per 60 seconds, each hourly export was batch
 
 ---
 
-## Phase 4.5 — Transform Script Optimization (Future)
+## Transform script inefficiency (future optimization)
 
 **Note:** This optimization is not urgent (transform runs manually only), but when scaling or automating, fix the `transform_to_silver.py` script to avoid re-reading all bronze files on every run.
 
@@ -171,13 +171,11 @@ def main():
 
 ## Lessons
 
-- **Scheduling matters.** A reasonable-sounding cadence (hourly) compounds into expensive API call volume over a month. Calculate: `(requests per run) × (runs per day) × (days in month)`.
-- **Free tier isn't free forever.** Monitor AWS cost anomalies early. The first overage is a great learning moment.
-- **Partition-aware processing saves requests.** When transforming partitioned data (Hive style), watermark at the partition level, not globally, so you never re-process.
-- **Incremental patterns beat full scans.** CSV merge scripts that re-read the entire partition on every run are a red flag. Use incremental merges or append-only silver layers (write once, never overwrite).
+- Check the request count math before committing to a cron schedule: `(requests per run) × (runs per day) × (days in month)` adds up faster than expected.
+- When transforming Hive-partitioned data, watermark at the partition level so old partitions aren't re-processed on every run.
+- A merge script that re-reads the entire partition each time is worth flagging for future optimization, even if it's fine at current volume.
 
 ## References
 
 - [AWS S3 Pricing — Free Tier](https://aws.amazon.com/s3/pricing/)
 - [Linux cron job format](https://man7.org/linux/man-pages/man5/crontab.5.html)
-- Medallion architecture best practice: source → bronze (raw) → silver (deduplicated, merged) → gold (business logic). Each layer should be processed once.

@@ -20,7 +20,7 @@ where temperature_c between -20 and 60
 
 SHT31D sensors occasionally return spurious values during I2C glitches — typically `-273.15 °C` (absolute zero) or `0`. Those readings are real rows in the bronze layer (the logger doesn't filter at ingest because the rule belongs in transform, not capture) but they never reach the marts because every mart `ref('stg_readings')`.
 
-This is a deliberate architectural choice: keep the edge code dumb, and put the data rules in the warehouse where they can evolve under code review and version control.
+Keeping the edge code simple and putting data rules in the warehouse means they can be changed and reviewed like any other code.
 
 ## Layer 2 — source freshness
 
@@ -37,7 +37,7 @@ sources:
 
 `dbt source freshness` runs `SELECT MAX(timestamp) FROM garage.readings` and checks the age of the most recent row. If it's older than 2 hours, dbt warns; older than 6 hours, dbt errors and the CI job fails.
 
-This is the canary for the most insidious failure mode in a data pipeline: **stale data that looks fresh because old rows are still queryable**. Without a freshness check, a logger that died last Tuesday produces dashboards that look healthy until someone notices the timestamps.
+This guards against a subtle failure mode: **stale data that looks fine because old rows are still queryable**. Without a freshness check, a logger that died last Tuesday produces dashboards that look healthy until someone notices the timestamps.
 
 ## Layer 3 — schema and singular tests
 
@@ -48,7 +48,7 @@ This is the canary for the most insidious failure mode in a data pipeline: **sta
 - **`not_null`** on every column in `stg_readings` and on the grain columns (`day`, `month`) of `daily_summary` and `monthly_summary`.
 - **`unique`** on `day` in `daily_summary` and `month` in `monthly_summary`.
 
-The uniqueness tests are the canary for **duplicate readings making it through the silver merge**. `transform_to_silver.py` already does `drop_duplicates(subset=["timestamp"])`, but if that ever regressed — say, by reading from the wrong partition — `daily_summary` would aggregate the same readings twice, days would no longer be unique, and the dbt build would fail.
+The uniqueness tests catch **duplicate readings slipping through the silver merge**. `transform_to_silver.py` already does `drop_duplicates(subset=["timestamp"])`, but if that ever broke — say, by reading from the wrong partition — `daily_summary` would aggregate the same readings twice, days would no longer be unique, and the dbt build would fail.
 
 ### Singular test — gap detection
 
@@ -85,11 +85,11 @@ Quality also lives in *how the data moves*, not just *what's in it*. Both export
 - **Postgres → Bronze** ([`scripts/export_to_s3.py`](../scripts/export_to_s3.py)): the watermark is the **last exported `timestamp`**, stored in `s3://garagewatch-data/watermark.json`. Queries are `WHERE timestamp > %s`, so a re-run of yesterday's export simply exports nothing new.
 - **Bronze → Silver** ([`scripts/transform_to_silver.py`](../scripts/transform_to_silver.py)): the watermark is the **last processed S3 object key**, stored in `silver_watermark.json`. Listing only `key > last_key` ensures partial reruns pick up where they left off.
 
-Idempotency isn't a data-quality *test*, but it's the property that makes the tests trustworthy — if a CI job retried after a transient AWS error, no test could distinguish that from a real data problem unless retries are guaranteed to produce the same result.
+Idempotency isn't a data-quality *test*, but it's what makes the tests trustworthy — if a CI job retries after a transient AWS error, the result is the same as if it had succeeded the first time, so tests aren't fooled by reruns.
 
 ## What this doesn't catch yet
 
-Honest list of gaps, for roadmap purposes:
+List of gaps, for roadmap purposes:
 
 - **Sensor calibration drift.** A reading of 72 °F is in-range whether it's accurate or not. Detecting drift would require a reference sensor or a known-stable indoor location for cross-checking.
 - **Statistical anomalies on the gold layer.** Currently only the alerter's threshold check (humidity > 55%). A z-score or rolling-MAD test on `daily_summary` would catch slow drifts and unusual days that no threshold predicts.

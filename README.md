@@ -1,6 +1,6 @@
 # garagewatch
 
-> An IoT-to-Athena data pipeline on a Raspberry Pi: SHT31D sensor → PostgreSQL → S3 medallion (CSV → Parquet) → dbt on Athena → Grafana.
+> An IoT-to-Athena data pipeline on a Raspberry Pi: SHT31D sensor (temp/humidity) → PostgreSQL → S3 medallion (CSV → Parquet) → dbt on Athena → Grafana.
 
 [![dbt CI](https://github.com/Travis-Magaluk/garagewatch/actions/workflows/dbt.yml/badge.svg)](https://github.com/Travis-Magaluk/garagewatch/actions/workflows/dbt.yml)
 [![Deploy](https://github.com/Travis-Magaluk/garagewatch/actions/workflows/deploy.yml/badge.svg)](https://github.com/Travis-Magaluk/garagewatch/actions/workflows/deploy.yml)
@@ -10,7 +10,7 @@
 ```mermaid
 flowchart TB
     subgraph Pi["Raspberry Pi (on-prem)"]
-        SHT["SHT31D sensor"] -->|I2C| Logger["garage_logger.py<br/>systemd, 60s loop"]
+        SHT["SHT31D sensor (temp/humidity)"] -->|I2C (Inter-Integrated Circuit)| Logger["garage_logger.py<br/>systemd, 60s loop"]
         Logger -->|"INSERT"| PG[("PostgreSQL<br/>garage_data.readings")]
         PG --> Alerter["alerter.py<br/>12h rolling avg"]
         Alerter -->|SMTP| Email(("Email alert"))
@@ -19,8 +19,8 @@ flowchart TB
 
     subgraph AWS["AWS"]
         Bronze[("S3 bronze<br/>raw/readings/<br/>year=/month= csv.gz")]
-        SilverS3[("S3 silver<br/>silver/readings/<br/>Parquet + Snappy")]
-        Marts[("Athena gold<br/>daily / monthly / hourly<br/>extreme_days / streaks")]
+        SilverS3[("S3 silver<br/>silver/readings/<br/>Snappy Parquet Format")]
+        Marts[("Athena gold<br/> Analytics Tables <br/> daily/monthly summaries + hourly profiles <br/>extreme_days + humidity streaks")]
     end
 
     subgraph GHA["GitHub Actions"]
@@ -38,8 +38,8 @@ flowchart TB
 
 ## At a glance
 
-- **What it does.** Captures garage temperature and humidity every 60 seconds from a real sensor, lands the data in a cloud warehouse via a medallion architecture, and surfaces it through dbt-tested marts and Grafana dashboards.
-- **What's notable.** Full bronze/silver/gold pipeline running inside the AWS free tier. Real CI/CD on real hardware — GitHub Actions reach the Pi over a Tailscale tunnel and use AWS OIDC instead of static credentials.
+- **What it does.** Captures garage temperature and humidity every 60 seconds from a temperature/humidity sensor, lands the data in a cloud warehouse via a medallion architecture, and displays it through dbt-tested marts and Grafana dashboards.
+- **What's notable.** Full bronze/silver/gold pipeline running inside the AWS free tier. CI/CD on Raspberry Pi — GitHub Actions reach the Pi over a Tailscale tunnel and use AWS OIDC instead of static credentials.
 - **Cadence.** 60-second ingest on the Pi, daily bronze export, daily silver + gold rebuild.
 
 ## Live dashboard
@@ -53,7 +53,7 @@ flowchart TB
 |---|---|
 | Languages | Python 3, SQL, Bash, Jinja |
 | Ingestion | I2C / SHT31D sensor, PostgreSQL, systemd |
-| Storage | AWS S3 (Hive-partitioned), Parquet + Snappy, gzipped CSV |
+| Storage | AWS S3 (Hive-partitioned), Snappy Parquet, gzipped CSV |
 | Transform | dbt (`dbt-athena-community`), pandas, PyArrow |
 | Query / Warehouse | AWS Athena, AWS Glue Data Catalog |
 | Orchestration | GitHub Actions (cron + path-triggered), AWS OIDC, Tailscale OAuth |
@@ -64,7 +64,7 @@ flowchart TB
 
 The pipeline implements a **medallion architecture** — raw data is progressively refined through three layers, with the edge device kept lightweight and all heavy format conversion pushed to the cloud.
 
-**Bronze (raw).** [`scripts/garage_logger.py`](scripts/garage_logger.py) runs as a `systemd` service on the Pi. Every 60 seconds it reads the SHT31D sensor over I2C and inserts one row into a local PostgreSQL table. A daily cron runs [`scripts/export_to_s3.py`](scripts/export_to_s3.py), which uses a watermark file to pull only rows newer than the last export and writes them as gzipped CSV under `s3://garagewatch-data/raw/readings/year=YYYY/month=MM/`. CSV instead of Parquet is intentional — the Pi runs 32-bit Python, so PyArrow can't be installed; that story is in [`docs/learnings/pyarrow-32bit.md`](docs/learnings/pyarrow-32bit.md).
+**Bronze (raw).** [`scripts/garage_logger.py`](scripts/garage_logger.py) runs as a `systemd` service on the Pi. Every 60 seconds it reads the SHT31D sensor (temperature and humidity) over I2C (serial hardware communication protocol) and inserts one row into a local PostgreSQL table. A daily cron runs [`scripts/export_to_s3.py`](scripts/export_to_s3.py), which uses a watermark file to pull only rows newer than the last export and writes them as gzipped CSV under `s3://garagewatch-data/raw/readings/year=YYYY/month=MM/`. CSV instead of Parquet is intentional — the Pi runs 32-bit Python, so PyArrow can't be installed; that story is in [`docs/learnings/pyarrow-32bit.md`](docs/learnings/pyarrow-32bit.md).
 
 **Silver (cleaned).** [`scripts/transform_to_silver.py`](scripts/transform_to_silver.py) runs in GitHub Actions on a daily schedule (00:30 UTC, after the Pi export). It reads new bronze CSV files, deduplicates and sorts by timestamp, normalizes timezone (Athena `TIMESTAMP` doesn't carry zone info), and writes Parquet (Snappy) to `s3://garagewatch-data/silver/readings/`. The job runs against AWS via short-lived OIDC credentials — no static keys live in GitHub secrets.
 
@@ -103,7 +103,7 @@ Deep dives: [`docs/architecture.md`](docs/architecture.md) · [`docs/dbt-models.
 │   └── dbt.yml                    # Daily OIDC → silver transform → dbt run/test
 ├── grafana/                       # Dockerized Grafana + Athena datasource
 └── docs/                          # Deep-dives and learnings
-    └── learnings/                 # Interview-ready writeups of real problems
+    └── learnings/                 # Writeups of real problems hit during the build
 ```
 
 ## Continuous deployment
@@ -131,7 +131,7 @@ dbt docs generate && dbt docs serve # Browseable lineage DAG at localhost:8080
 
 ## Engineering learnings
 
-Short, interview-ready writeups of real problems hit during the build:
+Short writeups of real problems encountered during the build:
 
 - **[Parquet on a Pi — the wheel that wasn't there](docs/learnings/pyarrow-32bit.md)** — How a 32-bit Python interpreter on 64-bit hardware sent me down a build-from-source rabbit hole, and how the right answer was to change the architecture, not fight the toolchain.
 - **[The S3 free-tier overage](docs/learnings/s3-cost-optimization.md)** — How an innocent-looking hourly cron blew through the AWS free tier, with the math on the API-call budget and the per-partition watermark refactor that fixes it at scale.
@@ -150,3 +150,4 @@ Short, interview-ready writeups of real problems hit during the build:
 ## Contact
 
 Built by Travis Magaluk — [twmagalu@gmail.com](mailto:twmagalu@gmail.com).
+Used Claude Code as a guide for learning and to help with documentation framework. 

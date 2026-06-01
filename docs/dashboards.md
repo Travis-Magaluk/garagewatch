@@ -32,7 +32,7 @@ Two of them, with deliberately different use cases ([`grafana/provisioning/datas
 | `GarageDB` | postgres | "Right now" panels — current temperature, current humidity, data freshness, raw counts |
 | `GarageAthena` | grafana-athena-datasource | Everything historical and aggregated — daily/monthly ranges, hourly heatmaps, extreme-days tables, streak rankings |
 
-The split is intentional. Current-state panels need single-row, low-latency queries; round-tripping those through S3 + Athena would add several seconds of cold-start latency and consume Athena scan budget. Historical panels need to aggregate hundreds of thousands of readings; doing that against the Pi's Postgres would be slow and would tax the same machine that runs the sensor logger.
+The split is intentional. "Right now" panels only need the latest reading, so fetching them from the Pi's local database is fast — routing them through S3 and Athena would add a noticeable delay and run up query costs for no benefit. Historical panels crunch hundreds of thousands of readings at once, which would be too slow and too taxing for the Pi to handle on its own.
 
 ## Dashboard — `GarageWatch`
 
@@ -48,13 +48,13 @@ One provisioned dashboard ([`grafana/provisioning/dashboards/garage_dashboard.js
 | Rolling Averages (7-day & 30-day) | `GarageAthena` | Window aggregate over `stg_readings` |
 | Daily Temperature Range (Min / Avg / Max) | `GarageAthena` | [`daily_summary`](dbt-models.md#daily_summary) |
 | Daily Humidity Range (Min / Avg / Max) | `GarageAthena` | [`daily_summary`](dbt-models.md#daily_summary) |
-| Avg Temperature by Hour × Month | `GarageAthena` | [`hourly_profile`](dbt-models.md#hourly_profile) |
-| Avg Humidity by Hour × Month | `GarageAthena` | [`hourly_profile`](dbt-models.md#hourly_profile) |
+| Avg Temperature by Hour × Month (need to fix) | `GarageAthena` | [`hourly_profile`](dbt-models.md#hourly_profile) |
+| Avg Humidity by Hour × Month (need to fix) | `GarageAthena` | [`hourly_profile`](dbt-models.md#hourly_profile) |
 | Coldest 15 Days (Last Year) | `GarageAthena` | [`extreme_days`](dbt-models.md#extreme_days) where `category = 'coldest'` |
 | Most Humid 15 Days (Last Year) | `GarageAthena` | [`extreme_days`](dbt-models.md#extreme_days) where `category = 'most_humid'` |
-| Longest High-Humidity Streaks (≥60%, ≥1 hr) | `GarageAthena` | [`humidity_streaks`](dbt-models.md#humidity_streaks) |
+| Longest High-Humidity Streaks (≥60%, ≥1 hr) (need to fix) | `GarageAthena` | [`humidity_streaks`](dbt-models.md#humidity_streaks) |
 
-Every historical panel reads from a gold mart, never from raw or staging data. That's the payoff for materializing marts as tables — Grafana queries finish in well under a second instead of repeating the aggregation each time someone reloads.
+Every historical panel reads from a gold mart, never from raw or staging data. Because the results are pre-computed and stored as tables, Grafana just reads the answer; it doesn't redo all the math on every page load.
 
 ## Running it locally
 
@@ -68,10 +68,11 @@ export ATHENA_SECRET_ACCESS_KEY=...
 docker compose up -d
 ```
 
-Then open `http://localhost:3000` and log in with `admin / $GRAFANA_ADMIN_PASSWORD`. The `GarageWatch` dashboard appears automatically under the `GarageWatch` folder.
+Then open `http://localhost:3000` and log in with username `admin` and the password you set for `GRAFANA_ADMIN_PASSWORD`. The `GarageWatch` dashboard appears automatically under the `GarageWatch` folder.
 
 ## Roadmap
 
+- Fix panels that are not working properly. 
 - **Annotations on the time-series panel** for sensor restarts and alert firings. Currently the time-series shows the data but not the events that explain anomalies.
 - **A weather overlay.** The garage temperature and humidity correlate strongly with outdoor weather; overlaying NWS or Open-Meteo data would turn the dashboard into a story about insulation.
 - **An "incident timeline" panel** built from the `humidity_streaks` mart — most useful as a strip plot of streak start/end ranges over the last year.

@@ -1,6 +1,6 @@
 # Setup — running the pipeline yourself
 
-Reproduction guide for the Pi-side and AWS-side pieces of the pipeline. Reading this end-to-end will take longer than skimming the README; that's intentional — this is the "I actually want to stand it up" path.
+Reproduction guide for the Pi-side and AWS-side pieces of the pipeline. Reading this end-to-end will take longer than skimming the README; that's intentional — this is the "I actually want to stand it up" path. This is not a full step by step implimentation guide. 
 
 ## Hardware
 

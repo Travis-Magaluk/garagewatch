@@ -22,7 +22,7 @@ flowchart LR
     daily --> extremes
 ```
 
-Both `monthly_summary` and `extreme_days` build on `daily_summary` rather than re-aggregating from `stg_readings` — fewer rows scanned per query, and the daily roll-up is the natural intermediate grain.
+Both `monthly_summary` and `extreme_days` build on `daily_summary` rather than re-aggregating from `stg_readings`. This means fewer rows scanned per query, and the daily roll-up is the natural intermediate grain.
 
 ## Project configuration
 
@@ -37,7 +37,7 @@ models:
       +materialized: table
 ```
 
-Staging is always a view — it's cheap, always fresh, and never paid for at query time because Athena inlines the view definition. Marts are tables because the dashboard panels would otherwise pay to re-aggregate millions of rows on every refresh. Athena writes mart tables as Parquet under the workgroup's S3 staging directory.
+Staging is always a view. It's cheap, always fresh, and never paid for at query time because Athena inlines the view definition. Marts are tables because the dashboard panels would otherwise pay to re-aggregate hundreds of thousands of rows on every refresh. Athena writes mart tables as Parquet under the workgroup's S3 staging directory.
 
 ## Source — `garage.readings`
 
@@ -72,7 +72,7 @@ where temperature_c between -20 and 60
   and timestamp is not null
 ```
 
-Every mart `ref('stg_readings')` — none reach into the raw source. Changing the cleaning rules in one place propagates everywhere.
+Every mart `ref('stg_readings')`, none reach into the raw source. Changing the cleaning rules in one place propagates everywhere.
 
 ## Marts
 
@@ -80,7 +80,7 @@ Every mart `ref('stg_readings')` — none reach into the raw source. Changing th
 
 One row per local calendar day with min / max / avg for temperature (F and C) and humidity, plus `reading_count` for sanity checks (1,440 expected readings per day at one-per-minute cadence).
 
-Tested for `not_null` and `unique` on the `day` column ([`dbt/models/schema.yml`](../dbt/models/schema.yml)). The uniqueness test is the canary for double-counted partitions — if the silver merge ever lets a duplicate row through, `daily_summary` will fail to build with a uniqueness violation.
+Tested for `not_null` and `unique` on the `day` column ([`dbt/models/schema.yml`](../dbt/models/schema.yml)). If the silver merge ever lets a duplicate row through, the uniqueness test will catch it — `daily_summary` will fail to build with a uniqueness violation.
 
 Used as the input for two downstream marts and as the source for the daily-range Grafana panels.
 
