@@ -1,7 +1,7 @@
 # PyArrow install blocked by 32-bit Python on 64-bit Pi hardware
 
 **Date:** 2026-04-17
-**Phase:** 2 — Pi Postgres → S3 export
+**Pi Postgres → S3 export**
 **Outcome:** Pivoted to CSV staging + cloud-side Parquet conversion (medallion pattern)
 
 ---
